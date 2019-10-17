@@ -1,0 +1,300 @@
+sample project
+
+示例项目
+
+All CEF applications have the following primary components:
+The CEF dynamic library (libcef.dll on Windows, libcef.so on Linux, “Chromium Embedded Framework.framework” on OS X).
+Support files (*.pak and *.bin binary blobs, etc).
+Resources (html/js/css for built-in features, strings, etc).
+Client executable (cefsimple in this example).
+
+所有 CEF 应用程序都具有以下主要组件:
+CEF 动态库 (在 Windows 上的 libcef.dll, libcef.so Linux 上, OS X 上的"铬嵌入式框架.framework".
+支持文件(*.pak 和 *.bin 二进制 blob 等)。
+资源(用于内置功能、字符串等的 html/js/css)。
+客户端可执行文件(本例中为 cefsimple)。
+
+
+The CEF dynamic library, support files and resources will be the same for every CEF-based application. They are included in the Debug/Release or Resources directory of the binary distribution. See the README.txt file included in the binary distribution for details on which of these files are required and which can be safely left out. See below for a detailed description of the required application layout on each platform.
+
+对于每个基于 CEF 的应用程序,CEF 动态库、支持文件和资源将相同。它们包含在二进制分发的调试/发布或资源目录中。请参阅二进制发行版中包含的 README.txt 文件,了解哪些文件是必需的,哪些文件可以安全地遗漏。有关每个平台上所需应用程序布局的详细说明,请参阅下文。
+
+
+
+The cefsimple application initializes CEF and creates a single popup browser window. The application terminates when all browser windows have been closed. Program flow is as follows:
+The OS executes the browser process entry point function (main or wWinMain).
+The entry point function:
+Creates an instance of SimpleApp which handles process-level callbacks.
+Initializes CEF and runs the CEF message loop.
+After initialization CEF calls SimpleApp::OnContextInitialized(). This method:
+Creates the singleton instance of SimpleHandler.
+Creates a browser window using CefBrowserHost::CreateBrowser().
+All browsers share the SimpleHandler instance which is responsible for customizing browser behavior and handling browser-related callbacks (life span, loading state, title display, etc).
+When a browser window is closed SimpleHandler::OnBeforeClose() is called. When all browser windows have closed the OnBeforeClose implementation quits the CEF message loop to exit the application.
+
+cefsimple 应用程序初始化 CEF 并创建单个弹出窗口浏览器窗口。当所有浏览器窗口都已关闭时,应用程序将终止。程序流如下:
+操作系统执行浏览器进程入口点功能(主或 wWinMain)。
+入口点函数:
+创建处理进程级回调的 SimpleApp 实例。
+初始化 CEF 并运行 CEF 消息循环。
+初始化后,CEF 调用 SimpleApp::OnContext 初始化()。此方法:
+创建简单处理程序的单例实例。
+使用 CefBrowser 主机::创建浏览器()创建浏览器窗口。
+所有浏览器共享 SimpleHandler 实例,该实例负责自定义浏览器行为和处理与浏览器相关的回调(寿命、加载状态、标题显示等)。
+关闭浏览器窗口时,将调用"简单处理程序:":On 前关闭()。当所有浏览器窗口都关闭 OnTotoClose 实现退出 CEF 消息循环以退出应用程序时。
+
+
+Entry Point Function
+Execution begins in the browser process entry point function. This function is responsible for initializing CEF and any OS-related objects. For example, it installs X11 error handlers on Linux and allocates the necessary Cocoa objects on OS X. OS X has a separate entry point function for helper processes.
+Windows platform implementation: cefsimple/cefsimple_win.cc
+Linux platform implementation: cefsimple/cefsimple_linux.cc
+Mac OS X platform implementation
+For the browser process: cefsimple/cefsimple_mac.mm
+For sub-processes: cefsimple/process_helper_mac.cc
+
+入口点函数
+执行从浏览器进程入口点函数开始。此函数负责初始化 CEF 和任何与操作系统相关的对象。例如,它在 Linux 上安装 X11 错误处理程序,并在 OS X 上分配必要的 Cocoa 对象。
+Windows 平台实现:cefsimple/cefle_win.cc
+Linux 平台实现:cefsimple/cefle_linux.cc
+Mac OS X 平台实施
+对于浏览器过程:cefsimple/cefle_mac.mm
+对于子进程:cefsimple/process_helper_mac.cc
+
+
+SimpleApp
+SimpleApp is responsible for handling process-level callbacks. It exposes some interfaces/methods that are shared by multiple processes and some that are only called in a particular process. The CefBrowserProcessHandler interface, for example, is only called in the browser process. There’s a separate CefRenderProcessHandler interface (not shown in this example) that is only called in the render process. Note that GetBrowserProcessHandler() must return |this| because SimpleApp implements both CefApp and CefBrowserProcessHandler. See the GeneralUsage Wiki page or API header files for additional information on CefApp and related interfaces.
+Shared implementation: cefsimple/simple_app.h, cefsimple/simple_app.cc
+
+简单应用程序
+SimpleApp 负责处理进程级回调。它公开了一些由多个进程共享的接口/方法,有些接口/方法仅在特定进程中调用。例如,CefBrowserProcessHandler 界面仅在浏览器过程中调用。有一个单独的 CefRenderProcessHandler 接口(本例中未显示),仅在渲染过程中调用。请注意,GetBrowserProcessHandler() 必须返回 [此]因为SimpleApp同时实现CefApp和CefBrowser过程处理程序处理程序处理程序。有关 CefApp 和相关界面的其他信息,请参阅常规使用 Wiki 页面或 API 头文件。
+共享实现:cefsimple/简单_app.h,cefsimple/简单_app.cc
+
+SimpleHandler
+SimpleHandler is responsible for handling browser-level callbacks. These callbacks are executed in the browser process. In this example we use the same CefClient instance for all browsers, but your application can use different CefClient instances as appropriate. See the GeneralUsage Wiki page or API header files for additional information on CefClient and related interfaces.
+Shared implementation: cefsimple/simple_handler.h, cefsimple/simple_handler.cc
+Windows platform implementation: cefsimple/simple_handler_win.cc
+Linux platform implementation: cefsimple/simple_handler_linux.cc
+Mac OS X platform implementation: cefsimple/simple_handler_mac.mm
+
+简单汉德勒
+SimpleHandler 负责处理浏览器级回调。这些回调在浏览器过程中执行。在此示例中,我们对所有浏览器使用相同的 CefClient 实例,但您的应用程序可以酌情使用不同的 CefClient 实例。有关 CefClient 和相关界面的其他信息,请参阅常规使用 Wiki 页或 API 头文件。
+共享实现:cefsimple/简单_处理程序.h,cefsimple/简单_处理程序.cc
+Windows 平台实现:cefsimple/简单_处理程序_win.cc
+Linux 平台实现:cefsimple/简单_处理程序_linux.cc
+Mac OS X 平台实现:简单/简单_处理程序_mac.mm
+
+
+Build steps vary depending on the platform. Explore the CMake files included with the binary distribution for a complete understanding of all required steps. The build steps common to all platforms can generally be summarized as follows:
+Compile the libcef_dll_wrapper static library.
+Compile the application source code files. Link against the libcef dynamic library and the libcef_dll_wrapper static library.
+Copy libraries and resources to the output directory.
+
+生成步骤因平台而异。浏览二进制发行版附带的 CMake 文件,全面了解所有必需的步骤。所有平台共有的构建步骤通常可以总结如下:
+编译 libcef_dll_包装静态库。
+编译应用程序源代码文件。链接到 libcef 动态库和 libcef_dll_包装静态库。
+将库和资源复制到输出目录。
+
+Windows Build Steps
+Compile the libcef_dll_wrapper static library.
+Compile/link cefsimple.exe.
+Required source code files include: cefsimple_win.cc, simple_app.cc, simple_handler.cc, simple_handler_win.cc.
+Required link libraries include: comctl32.lib, shlwapi.lib, rcprt4.lib, libcef_dll_wrapper.lib, libcef.lib, cef_sandbox.lib. Note that cef_sandbox.lib (required for sandbox support) is a static library currently built with Visual Studio 2015 Update 3 and it may not compile with other Visual Studio versions. See comments in cefsimple_win.cc for how to disable sandbox support.
+Resource file is cefsimple.rc.
+Manifest files are cefsimple.exe.manifest and compatibility.manifest.
+Copy all files from the Resources directory to the output directory.
+Copy all files from the Debug/Release directory to the output directory.
+
+Windows 生成步骤
+编译 libcef_dll_包装静态库。
+编译/链接 ceflee.exe。
+所需的源代码文件包括:cefle_win.cc、简单_app.cc、简单_handler.cc、简单_handler_win.cc。
+必需的链接库包括:comctl32.lib、shlwapi.lib、rcprt4.lib、libcef_dll_wrapper.lib、libcef.lib、cef_sandbox.lib。请注意,cef_sandbox.lib(沙盒支持所必需的)是一个静态库,当前使用 Visual Studio 2015 Update 3 构建,它可能不会与其他 Visual Studio 版本编译。有关如何禁用沙盒支持,请参阅 cefle_win.cc 中的注释。
+资源文件是 cefsimple.rc。
+清单文件是 cefsimple.exe.显化和兼容性。
+将所有文件从 资源目录复制到输出目录。
+将所有文件从调试/释放目录复制到输出目录。
+
+
+
+First install some necessary tools and download the cef-project source code.
+1. Install CMake, a cross-platform open-source build system. Version 2.8.12.1 or newer is required.
+2. Install Python. Version 2.x is required. If Python is not installed to the default location you can set the PYTHON_EXECUTABLE environment variable before running CMake (watch for errors during the CMake generation step below).
+3. Install platform-specific build tools.
+Linux: Currently supported distributions include Debian Wheezy, Ubuntu Precise, and related. Ubuntu 14.04 64-bit is recommended. Newer versions will likely also work but may not have been tested. Required packages include: build-essential, libgtk2.0-dev, libgtkglext1-dev.
+macOS: Xcode 6 or newer building on macOS 10.9 (Mavericks) or newer is required. Xcode 8.3 and macOS 10.12 (Sierra) are recommended. The Xcode command-line tools must also be installed. Only 64-bit builds are supported on macOS.
+Windows: Visual Studio 2013 or newer building on Windows 7 or newer is required. Visual Studio 2017 and Windows 10 64-bit are recommended.
+4. Download the cef-project source code from the Downloads page or by using Git command-line tools:
+git clone https://bitbucket.org/chromiumembedded/cef-project.git
+
+
+首先安装一些必要的工具,并下载 cef 项目源代码。
+1. 安装CMake,一个跨平台开源构建系统。需要版本 2.8.12.1 或更高版本。
+2. 安装 Python。版本 2.x 是必需的。如果未将 Python 安装到默认位置,则可以在运行 CMake 之前设置 PYTHON_可执行环境变量(注意下面的 CMake 生成步骤中的错误)。
+3. 安装特定于平台的生成工具。
+Linux:目前支持的发行版包括Debian Wheezy、Ubuntu精确版和相关版。建议使用 Ubuntu 14.04 64 位。较新版本可能也工作,但可能尚未测试。所需的包包括:生成必需的 libgtk2.0-dev、libgtlexlext1-dev。
+macOS:需要 Xcode 6 或更新版本的 macOS 10.9(小牛)或更新版本。建议使用 Xcode 8.3 和 macOS 10.12(塞拉)。还必须安装 Xcode 命令行工具。macOS 上仅支持 64 位版本。
+Windows: Visual Studio 2013 或 Windows 7 或更高版本的新版本是必需的。建议使用 Visual Studio 2017 和 Windows 10 64 位。
+4. 从"下载"页面或使用 Git 命令行工具下载 cef 项目源代码:
+git 克隆https://bitbucket.org/chromiumembedded/cef-project.git
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+ manually
+ automated tools
+
+
+
+popup window \ useview \ usewindowlessrendering \ use_transparent_painting
+
+with_osr
+
+InitAsPopup
+
+CreateExtensionWindow
+CreateRootWindowAsExtension
+
+
+
+
+
+
+config.with_osr = is_osr();
+
+
+
+
+
+SetDeviceScaleFactor
+GetDeviceScaleFactor
+
+GetWindowScaleFactor
+
+
+PromptDSF
+
+OnAutoResize
+
+OnSetLoadingState
+
+
+
+
+TID_IO
+
+OnAfterCreated
+
+
+OnSetFullscreen
+
+
+UNICODE 编码冲突
+
+
+
+
+一个线程一个消息循环
+
+void CefEnableHighDPISupport();
+class CefMainArgs
+int CefExecuteProcess(const CefMainArgs& args,
+                      CefRefPtr<CefApp> application,
+                      void* windows_sandbox_info);
+bool CefInitialize(const CefMainArgs& args,
+                   const CefSettings& settings,
+                   CefRefPtr<CefApp> application,
+                   void* windows_sandbox_info);
+void CefShutdown();				   
+				   
+typedef CefStructBase<CefSettingsTraits> CefSettings;				   
+class CefApp  
+class CefBrowserProcessHandler
+void CefRunMessageLoop();
+
+==========================================================
+CEF
+
+二进制文件 发布 下载
+源码文件 发布 下载
+
+示例工程下载
+cef --> Tutorial --> cef-project
+
+
+some necessary tools and download the cef-project source code.
+
+1. CMake （Version 2.8.12.1 or newer）
+2. Python （Version 2.x） （PYTHON_EXECUTABLE environment variable）
+3. build tools. （Visual Studio）
+4. Download the cef-project source code from the Downloads page or by using Git command-line tools:
+git clone https://bitbucket.org/chromiumembedded/cef-project.git
+
+
+
+有个入门 指导 （简单介绍）
+
+
+All CEF applications have the following primary components:
+
+1.The CEF dynamic library (libcef.dll on Windows, libcef.so on Linux, “Chromium Embedded Framework.framework” on OS X).
+2.Support files (*.pak and *.bin binary blobs, etc).
+3.Resources (html/js/css for built-in features, strings, etc).
+4.Client executable (cefsimple in this example).
+
+The CEF dynamic library, support files and resources will be the same for every CEF-based application. 
+ Debug/Release directory
+ Resources directory
+
+ README.txt file on which of these files are required and which can be safely left out.
+
+
+
+
+multiple processes.
+    main process ： “browser” process.
+    Sub-processes ： renderers, plugins, GPU, etc.
+On Windows and Linux the same executable can be used for the main process and sub-processes. On OS X you are required to create a separate executable and app bundle for sub-processes.
+Most processes in CEF have multiple threads. CEF provides functions and interfaces for posting tasks between these various threads.
+Some callbacks and functions may only be used in particular processes or on particular threads. Make sure you read the source code comments in the API headers before you begin using a new callback or function for the first time.
+
+
+
+
+Build Steps
+CMake files , complete understanding of all required steps. 
+summarized as follows:
+1.Compile the libcef_dll_wrapper static library.
+2.Compile the application source code files. Link against the libcef dynamic library and the libcef_dll_wrapper static library.
+3.Copy libraries and resources to the output directory.
+
+
+
+
+Entry Point Function
+browser process
+initializing CEF and any OS-related objects
+
+
+
+
+
+创建浏览器窗口 BROWSER     CefBrowserHost::CreateBrowser
+虚窗口 依附于 与参数指定 有关
+
+
+
+RootWindow （RootWindowWin） 创建窗口 CreateRootWindow 调用系统API （CreateWindowEx） 指定了窗口过程   RootWndProc
+创建窗口触发有相关消息：
+  WM_NCCREATE  消息 ，其联动 RootWindowWin 的 一个函数 类似 OnNCCreate ，其主要保存创建的窗口的窗口句柄
+  WM_CREATE  消息 ，其联动 RootWindowWin 的 一个函数 类似 OnCreate ，其主要创建浏览器窗口 CefBrowserHost::CreateBrowser
+
+
+
+
+
+
+c++ 与 web框架或者技术 进行联合协同开发 如何？？？
+
