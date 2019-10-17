@@ -1,0 +1,242 @@
+struct mg_mgr
+  ~ struct mg_connection
+  ~ sock_t [SOCKET] [winsock2.h]
+  ~ struct mg_iface
+  --
+
+  
+ 
+struct mg_connection
+  ~ struct mg_connection
+  ~ struct mg_mgr
+  ~ sock_t [SOCKET] [winsock2.h]
+  ~ socket_address [sockaddr] [winsock.h] [ws2def.h]
+  ~ struct mbuf
+  ~ time_t [time.h]
+  ~ mg_event_handler_t
+  ~ proto_data_destructor
+  ~ struct mg_iface
+  --
+  
+struct mg_iface
+  ~ struct mg_mgr
+  ~ struct mg_iface_vtable
+  --
+
+
+struct mbuf
+  --
+
+
+struct mg_iface_vtable
+//  ~ time_t [time.h]
+//  ~ sock_t [SOCKET] [winsock2.h]
+//  ~ socket_address [sockaddr] [winsock.h] [ws2def.h]
+  
+
+
+
+
+mg_mgr_init
+  ~ struct mg_mgr
+  ~ struct mg_mgr_init_opts
+  ~ mg_mgr_init_opt
+  
+  
+struct mg_mgr_init_opts
+  ~ struct mg_iface_vtable
+
+
+mg_mgr_init_opt
+  ~ struct mg_mgr
+  ~ struct mg_mgr_init_opts
+  ~ mg_if_create_iface
+
+
+
+extern struct mg_iface_vtable *mg_ifaces[];
+extern int mg_num_ifaces;
+
+
+mg_if_create_iface
+  ~ struct mg_iface_vtable
+  ~ struct mg_mgr
+  
+  
+mg_default_iface_vtable
+  ~ mg_socket_if_init
+  
+
+
+mg_socket_if_init
+  ~ mg_socketpair
+
+
+
+// networking interface
+mg_mgr_init_opt
+  ~ struct mg_mgr
+  ~ struct mg_mgr_init_opts
+  ~ WSAStartup [sys]
+  ~ mg_if_create_iface
+  ~ ..struct mg_iface_vtable.init
+
+
+
+mg_if_create_iface
+  ~ struct mg_iface_vtable
+  ~ struct mg_mgr
+  ~ struct mg_iface
+
+
+
+mg_default_iface_vtable
+mg_tun_iface_vtable
+
+
+struct mg_iface_vtable {
+  void (*init)(struct mg_iface *iface);
+  void (*free)(struct mg_iface *iface);
+  void (*add_conn)(struct mg_connection *nc);
+  void (*remove_conn)(struct mg_connection *nc);
+  time_t (*poll)(struct mg_iface *iface, int timeout_ms);
+
+  /* Set up a listening TCP socket on a given address. rv = 0 -> ok. */
+  int (*listen_tcp)(struct mg_connection *nc, union socket_address *sa);
+  /* Request that a "listening" UDP socket be created. */
+  int (*listen_udp)(struct mg_connection *nc, union socket_address *sa);
+
+  /* Request that a TCP connection is made to the specified address. */
+  void (*connect_tcp)(struct mg_connection *nc, const union socket_address *sa);
+  /* Open a UDP socket. Doesn't actually connect anything. */
+  void (*connect_udp)(struct mg_connection *nc);
+
+  /* Send functions for TCP and UDP. Sent data is copied before return. */
+  void (*tcp_send)(struct mg_connection *nc, const void *buf, size_t len);
+  void (*udp_send)(struct mg_connection *nc, const void *buf, size_t len);
+
+  void (*recved)(struct mg_connection *nc, size_t len);
+
+  /* Perform interface-related connection initialization. Return 1 on ok. */
+  int (*create_conn)(struct mg_connection *nc);
+  /* Perform interface-related cleanup on connection before destruction. */
+  void (*destroy_conn)(struct mg_connection *nc);
+
+  /* Associate a socket to a connection. */
+  void (*sock_set)(struct mg_connection *nc, sock_t sock);
+
+  /* Put connection's address into *sa, local (remote = 0) or remote. */
+  void (*get_conn_addr)(struct mg_connection *nc, int remote,
+                        union socket_address *sa);
+};
+
+
+
+#define MG_SOCKET_IFACE_VTABLE                                          \
+  {                                                                     \
+    mg_socket_if_init,                                                  \
+    mg_socket_if_free,                                                  \
+    mg_socket_if_add_conn,                                              \
+    mg_socket_if_remove_conn,                                           \
+    mg_socket_if_poll,                                                  \
+    mg_socket_if_listen_tcp,                                            \
+    mg_socket_if_listen_udp,                                            \
+    mg_socket_if_connect_tcp,                                           \
+    mg_socket_if_connect_udp,                                           \
+    mg_socket_if_tcp_send,                                              \
+    mg_socket_if_udp_send,                                              \
+    mg_socket_if_recved,                                                \
+    mg_socket_if_create_conn,                                           \
+    mg_socket_if_destroy_conn,                                          \
+    mg_socket_if_sock_set,                                              \
+    mg_socket_if_get_conn_addr,                                         \
+  }
+
+
+
+#define MG_TUN_IFACE_VTABLE                                             \
+  {                                                                     \
+    mg_tun_if_init,                                                     \
+    mg_tun_if_free,                                                     \
+    mg_tun_if_add_conn,                                                 \
+    mg_tun_if_remove_conn,                                              \
+    mg_tun_if_poll,                                                     \
+    mg_tun_if_listen_tcp,                                               \
+    mg_tun_if_listen_udp,                                               \
+    mg_tun_if_connect_tcp,                                              \
+    mg_tun_if_connect_udp,                                              \
+    mg_tun_if_tcp_send,                                                 \
+    mg_tun_if_udp_send,                                                 \
+    mg_tun_if_recved,                                                   \
+    mg_tun_if_create_conn,                                              \
+    mg_tun_if_destroy_conn,                                             \
+    mg_tun_if_sock_set,                                                 \
+    mg_tun_if_get_conn_addr,                                            \
+  }
+  
+  
+mg_socket_if_init
+  ~ mg_socketpair [MG_ENABLE_BROADCAST]
+      ~ 调用系统方法
+
+
+
+
+// listening connection
+mg_bind_opt
+  ~ struct mg_mgr
+  ~ mg_event_handler_t
+  ~ struct mg_bind_opts
+  ~ union socket_address
+  ~ struct mg_connection
+  ~ struct mg_add_sock_opts
+  ~ mg_tun_bind_opt [MG_ENABLE_TUN]
+  ~ mg_parse_address [Address format: [PROTO://][HOST]:PORT]
+      ~ --
+  ~ mg_create_connection
+  ~ ..struct mg_iface_vtable.listen_udp / ..struct mg_iface_vtable.listen_tcp
+  ~ mg_add_conn
+
+
+
+mg_parse_address
+  ~ union socket_address
+  ~ mg_resolve_from_hosts_file
+  ~ mg_ncasecmp
+
+
+
+mg_create_connection
+ ~ struct mg_mgr
+ ~ mg_event_handler_t
+ ~ struct mg_add_sock_opts
+ ~ mg_create_connection_base
+ ~ struct mg_connection
+ ~ ..struct mg_iface_vtable.create_conn
+
+
+
+mg_create_connection_base
+ ~ struct mg_mgr
+ ~ mg_event_handler_t
+ ~ struct mg_add_sock_opts
+ ~ struct mg_connection
+
+
+
+
+mg_add_conn
+  ~ struct mg_mgr
+  ~ struct mg_connection
+  ~ ..struct mg_iface_vtable.add_conn
+
+
+
+
+
+// set built-in HTTP event handler
+mg_set_protocol_http_websocket
+
+
+
+which networking interface implementation to use
