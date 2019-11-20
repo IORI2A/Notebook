@@ -8,3 +8,7 @@
 
 - QT学习_01.md
 [Qt 产品图 Qt Product Map](https://www.qt.io/qt-product-map)
+
+- QT学习_02.md
+帮助文档中 Getting Started with Qt 。（仅学习 QML 实现简单界面部分）
+
